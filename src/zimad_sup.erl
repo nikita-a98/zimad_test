@@ -75,7 +75,7 @@ init([]) ->
   SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
   Childs = [
-    ?WORKER(zimad_ctl, [])
+    ?WORKER(zimad, [])
   ],
 
   {ok, {SupFlags, Childs}}.

@@ -19,7 +19,9 @@
 %%% Macros
 %%% ==================================================================
 
--define(KEY, <<"-----BEGIN RSA PRIVATE KEY-----\nMIICWgIBAAKBgEMkaqhx3QjGA2+ofqaKtOl+8kRsPUQpqKYMVRf3cF4Dlak9pa1a\n3AeJFzaWN1iFszhLICNSjGqlE5zeyAvCElG4yQ6DfCDH8fgYxgkx1GHSe8Pnd6NB\npVMk+qm/eoCY1WfKaihrxM0SOnsHDtybkPJ1SYVzt9KaRIWe5+mCEznbAgMBAAEC\ngYABjiBiUnDaOSvvNCnq1Z+nIOefqhopMAXWAscdzP9vTgnzZ5gk0cvy6Lv+6a/S\nfxZNoX/XEZxrA/PWWFqt2wrtj5UgK1vHfGBt4bRfofJqJ4RJxlF63PG6G+bljaPK\nr4QMuWhuQ7oTo9vpJX3d9VlJQ6PA/A6pjEd6C0KgIYNmsQJBAIVMxADwoMcathM2\nNyAnR9De254yCuw25rMxUSJjqUkP1biJN2bPTO9TygfNvBzZXT1oxobqUmiLP03F\n3bvK+B0CQQCA8guxb7M+lBgs+zB0fjOmzvH3GYx1CWXC5x6CjdkdZGRKWRIL/AQG\npRae9P45XRY+HVobvroMcxCQbgm6OAhXAkAbN2pJmtfo7y4/y/EDcqG6JtaGfUc3\npZoC+k3LjLeywDXt4K5cInVd5Ci64SnIZiUgdbUbNNqwl8XMFltIjY+NAkBYx86b\nPaA5TvgSSGTFYHspt8TLcHDPyEejWUQdeZLqdMvEkO0nCT6wYIxhp6c+UcRVwhnf\njoNEvRjDiK/z4k6DAkB37MF42ZKcuzkYZz3loYAa6E7SGRApGXWugX3tN7OXoGpY\n4uO9N1a/oIOgYX+mmBm9wISNW+pGtWj8RIrYC93E\n-----END RSA PRIVATE KEY-----\n">>).
+-define(TTL, 900).
+-define(ALG, <<"HS256">>).
+-define(KEY, <<"OC5XeKtn0-pS-kU8KxF41h7WzMMd-IY12Xj6xboX7rk">>).
 
 %%% ==================================================================
 %%% Includes
@@ -41,17 +43,15 @@
   Token  :: binary().
 
 create_jwt(UserId) ->
-  Alg = <<"RS256">>, %% Hardcoded value
-  Ttl = 900, %% Hardcoded value
   Jti = uuid:uuid_to_string(uuid:get_v4(), binary_standard),
   AccessJwtClaims = #{
     uid => UserId,
     jti => Jti
   },
   AccessJwtOpts = [
-    {ttl, Ttl},
+    {ttl, ?TTL},
     {key, ?KEY},
-    {alg, Alg}
+    {alg, ?ALG}
   ],
   #{jwt := AccessJwt, exp := AccessJwtExp} = create(AccessJwtClaims, AccessJwtOpts),
   Rec = #zimad_jwt{
@@ -60,7 +60,7 @@ create_jwt(UserId) ->
     exp = AccessJwtExp
   },
   ok = mnesia:dirty_write(Rec),
-  {ok, #{<<"token">> => AccessJwt}}.
+  {ok, AccessJwt}.
 
 %% -------------------------------------------------------------------
 %% @doc
@@ -148,10 +148,8 @@ encode(JwtPart) when is_binary(JwtPart) ->
   JwtPart :: binary(),
   Sign :: binary().
 
-sign(<<"RS256">>, Key, JwtPart) ->
-  [Entry] = public_key:pem_decode(Key),
-  PeKey = public_key:pem_entry_decode(Entry),
-  public_key:sign(JwtPart, sha256, PeKey);
+sign(<<"HS256">>, Key, JwtPart) ->
+  crypto:hmac(sha256, Key, JwtPart);
 
 sign(_Alg, _Key, _JwtPart) ->
   {error, badarg}.
@@ -222,10 +220,8 @@ parse(_, _) ->
   JwtPart :: binary(),
   Reason :: badarg | invalid_sign.
 
-verify_sign(<<"RS256">>, Key, Sign, JwtPart) ->
-  [Entry] = public_key:pem_decode(Key),
-  PeKey = public_key:pem_entry_decode(Entry),
-  case public_key:verify(JwtPart, sha256, Sign, PeKey) of
+verify_sign(<<"HS256">>, Key, Sign, JwtPart) ->
+  case (Sign == crypto:hmac(sha256, Key, JwtPart)) of
     true ->
       ok;
     false ->

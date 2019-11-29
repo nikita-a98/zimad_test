@@ -16,11 +16,8 @@ ERLC_OPTS += +warn_export_all +warn_untyped_record
 LOCAL_DEPS = kernel stdlib crypto public_key inets ssl asn1 mnesia os_mon
 LOCAL_DEPS += runtime_tools observer wx sasl tools common_test debugger et
 
-DEPS += cowboy jiffy uuid lager #observer_cli
-dep_cowboy = git https://github.com/ninenines/cowboy.git 2.6.1
+DEPS += cowboy jiffy uuid
 dep_jiffy = git https://github.com/davisp/jiffy.git 0.15.2
 dep_uuid = git https://github.com/okeuday/uuid.git v1.7.4
-dep_lager = git https://github.com/erlang-lager/lager.git 3.6.7
-#dep_observer_cli = git https://github.com/zhongwencool/observer_cli.git 1.4.0
 
 include erlang.mk
