@@ -1,0 +1,11 @@
+.erlang.mk
+deps/*
+_rel
+*.d
+*.iml
+*.o
+*.beam
+ebin/*.beam
+.idea
+logs
+*~
